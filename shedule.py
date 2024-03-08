@@ -103,33 +103,36 @@ model = cp_model.CpModel()
 x = [[model.NewIntVar(0, 1, f"x_{i}{j}") for j in range(nc)] for i in range(nt)]
 #if lesson i is course j: x[i][j] = 1 else : x[i][j] = 0
 def const1(jj):
-    res = x[0][jj]
-    for ii in range(1, nt):
-        res = res + x[ii][jj]
-    return res    
+    return sum([x[ii][jj] for ii in range(nt)])
 
 def rang1(jj):
-    res = x[0][jj]
-    for ii in range(1, nt):
-        res = res + x[ii][jj]*(ii+1)
-    return res 
+    return sum([x[ii][jj]*(ii+1) for ii in range(nt)])
+    
+
+def const2(ii, g):
+    #return sum([x[ii][jj]*group[g][jj]  for jj in range(nc)])
+    obje = []
+    for jj in range(nc):
+        if group[g][jj] == 1:
+            obje.append(x[ii][jj])
+    return sum(obje)
+    
+
+def const3(ii, p):
+    #return sum([x[ii][jj]*preps[p][jj]  for jj in range(nc)])
+    obje = []
+    for jj in range(nc):
+        if preps[p][jj] == 1:
+            obje.append(x[ii][jj])
+    return sum(obje)
+
+    
+
 
 for j in range(nc):
     model.Add(const1(j) == 1) 
 
-def const2(ii, g):
-    res = x[ii][0]*group[g][0]    
-    for jj in range(1, nc):
-        if group[g][jj] == 1:
-            res = res + x[ii][jj]
-    return res
 
-def const3(ii, p):
-    res = x[ii][0]*preps[p][0]    
-    for jj in range(1, nc):
-        if preps[p][jj] == 1:
-            res = res + x[ii][jj]
-    return res
 
 # 1 group
 for g in group.keys():
@@ -146,7 +149,7 @@ for p in preps.keys():
 # busy day for preps       
 i = 6        
 model.Add(const3(i-1, 'Павлюкевич Р.В.') == 0)        
-#model.Add(const3(i-1, 'Курбатова Е.А.') == 0)        
+model.Add(const3(i-1, 'Курбатова Е.А.') == 0)        
 
      
 
@@ -182,15 +185,18 @@ rangs[56] = {67,11,6}
 
 rangs[15] = {22,14,16,12,26,7}
 
+
 for i in rangs.keys():
     for j in rangs[i]:
         model.Add(rang1(i) < rang1(j))
+        
 #15->22,14,16,12,26,7
 # Creates a solver and solves the model.
 sys.stdout = open('res_shedulte.txt', "w", encoding="utf-8")
 solver = cp_model.CpSolver()
 status = solver.Solve(model)   
 if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
+    print(f"  wall time: {solver.WallTime()} s")
     for i in range(nt):
         print(f'==================={i+1}======================')
         for j in range(nc):
